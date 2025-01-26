@@ -21,15 +21,15 @@
 #include <SPI.h>
 #include <WiFi.h>
 #include <BlynkSimpleWifi.h>
-#include <Wire.h>
 #include <LiquidCrystal_I2C.h>
+#include <Wire.h>
 #include <DHT.h>
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x27,16,2); 
 
-DHT dht(A0, DHT11);
-BlynkTimer timer;
+DHT dht(DHTPIN, DHT11);
 
+BlynkTimer timer; 
 
 // Function prototypes
 void Motor(String direction);
@@ -37,7 +37,7 @@ void smartcar();
 void Obstacle();
 int Ultrasound1(void);
 int Ultrasound2(void);
-
+void sendSensor();
 
 
 bool forward = 0;
@@ -49,30 +49,19 @@ bool right = 0;
 char ssid[] = "Jeisis"; // Wifi credentials
 char pass[] = "12345678"; // Wifi password
 
-void sendSensor()
-{
-  float h = dht.readHumidity();
-  float t = dht.readTemperature();
-
-  if (isnan(h) || isnan(t))
-  {
-    Serial.println("Failed to read from DHT sensor");
-    return;
-  }
-
-lcd.setCursor(0, 0);
-lcd.print("Temp: ");
-lcd.print(t);
-lcd.setCursor(0, 1);
-lcd.print("Humidity: ");
-lcd.print(h);
-
-}
-
 void setup()
 {
   
-Serial.begin(9600); // Debug console
+  Serial.begin(9600); // Debug console
+
+  // Initialising LCD
+  lcd.init();
+  lcd.backlight();
+  dht.begin();
+  lcd.setCursor(0, 0);
+  lcd.print("Temp:");
+  lcd.setCursor(0, 1);
+  lcd.print("Humidity:");
 
  pinMode(IN1_right, OUTPUT);
  pinMode(IN2_right, OUTPUT);
@@ -82,33 +71,34 @@ Serial.begin(9600); // Debug console
  pinMode(EchoPin1, INPUT);
  pinMode(TrigPin2, OUTPUT);
  pinMode(EchoPin2, INPUT);
- dht.begin();
- lcd.init();
- lcd.backlight();
- Wire.begin();
  
- lcd.setCursor(1, 0);
- lcd.print("System Loading");
-
- for(int a = 0; a <= 15; a++)
- {
-  lcd.setCursor(a, 1);
-  lcd.print(".");
-  delay(500);
- }
-
- lcd.clear();
-
- timer.setInterval(1000L, sendSensor);
 
  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+ timer.setInterval(1000L, sendSensor);
 
 }
 
 void loop()
 {
-  Blynk.run();
-  timer.run();
+
+ 
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t)) 
+  {
+    lcd.print("ERROR");
+    return;
+  }
+
+  lcd.setCursor(5,0);
+  lcd.print(t);
+  lcd.setCursor(9,1);
+  lcd.print(h);
+
+  Blynk.run(); //Initiates Blynk
+  timer.run(); // Initiates timer
 
   int Dist1 = Ultrasound1();
   int Dist2 = Ultrasound2();
@@ -144,6 +134,21 @@ BLYNK_WRITE(V2)
 BLYNK_WRITE(V3)
 {
   right = param.asInt();
+}
+
+void sendSensor()
+{
+  float h = dht.readHumidity();
+  float t = dht.readTemperature(); // or dht.readTemperature(true) for Fahrenheit
+
+  if (isnan(h) || isnan(t)) 
+  {
+    Serial.println("Failed to read from DHT sensor!");
+    return;
+  }
+
+  Blynk.virtualWrite(V5, h);
+  Blynk.virtualWrite(V6, t);
 }
 
 void smartcar() // Function for controlling the car using WiFi
