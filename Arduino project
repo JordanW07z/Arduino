@@ -1,0 +1,274 @@
+#define BLYNK_PRINT Serial
+
+// Information for the Blynk Device
+#define BLYNK_TEMPLATE_ID "TMPL6WNukz17k"
+#define BLYNK_TEMPLATE_NAME "IED project"
+#define BLYNK_AUTH_TOKEN "ZvoAk7z4Ao2IbbiL870qqaqBGsHzZtri"
+
+// Defining pins for Arduino components
+#define IN1_right 9
+#define IN2_right 6
+#define IN3_left 5
+#define IN4_left 3
+#define TrigPin1 11
+#define EchoPin1 10
+#define TrigPin2 8
+#define EchoPin2 7
+#define DHTPIN 12
+
+
+// Libraries
+#include <SPI.h>
+#include <WiFi.h>
+#include <BlynkSimpleWifi.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <DHT.h>
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+
+DHT dht(A0, DHT11);
+BlynkTimer timer;
+
+
+// Function prototypes
+void Motor(String direction);
+void smartcar();
+void Obstacle();
+int Ultrasound1(void);
+int Ultrasound2(void);
+
+
+
+bool forward = 0;
+bool reverse = 0;
+bool left = 0;
+bool right = 0;
+
+
+char ssid[] = "Jeisis"; // Wifi credentials
+char pass[] = "12345678"; // Wifi password
+
+void sendSensor()
+{
+  float h = dht.readHumidity();
+  float t = dht.readTemperature();
+
+  if (isnan(h) || isnan(t))
+  {
+    Serial.println("Failed to read from DHT sensor");
+    return;
+  }
+
+lcd.setCursor(0, 0);
+lcd.print("Temp: ");
+lcd.print(t);
+lcd.setCursor(0, 1);
+lcd.print("Humidity: ");
+lcd.print(h);
+
+}
+
+void setup()
+{
+  
+Serial.begin(9600); // Debug console
+
+ pinMode(IN1_right, OUTPUT);
+ pinMode(IN2_right, OUTPUT);
+ pinMode(IN3_left, OUTPUT);
+ pinMode(IN4_left, OUTPUT);
+ pinMode(TrigPin1, OUTPUT);
+ pinMode(EchoPin1, INPUT);
+ pinMode(TrigPin2, OUTPUT);
+ pinMode(EchoPin2, INPUT);
+ dht.begin();
+ lcd.init();
+ lcd.backlight();
+ Wire.begin();
+ 
+ lcd.setCursor(1, 0);
+ lcd.print("System Loading");
+
+ for(int a = 0; a <= 15; a++)
+ {
+  lcd.setCursor(a, 1);
+  lcd.print(".");
+  delay(500);
+ }
+
+ lcd.clear();
+
+ timer.setInterval(1000L, sendSensor);
+
+ Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+
+}
+
+void loop()
+{
+  Blynk.run();
+  timer.run();
+
+  int Dist1 = Ultrasound1();
+  int Dist2 = Ultrasound2();
+
+  if (Dist1 < 35 || Dist2 < 35)
+  {
+    Obstacle();
+  }
+
+  else
+  {
+    smartcar();
+  }
+
+}
+
+// Blynk_Write functions for getting values from the phone
+BLYNK_WRITE(V0)
+{
+  forward = param.asInt();
+}
+
+BLYNK_WRITE(V1)
+{
+  reverse = param.asInt();
+}
+
+BLYNK_WRITE(V2)
+{
+  left = param.asInt();
+}
+
+BLYNK_WRITE(V3)
+{
+  right = param.asInt();
+}
+
+void smartcar() // Function for controlling the car using WiFi
+{
+  if(forward == 1)
+  {
+    move("forward");
+  }
+  else if (reverse == 1)
+  {
+    move("reverse");
+  }
+  else if (left == 1)
+  {
+    move("left");
+  }
+  else if (right == 1)
+  {
+    move("right");
+  }
+  else
+  {
+    move("stop");
+  }
+
+}
+
+
+// Function for Motor 
+void move(String direction)
+{
+  
+  if (direction == "stop") // For Stopping the car
+  {
+    analogWrite(IN3_left, 0);
+    digitalWrite(IN4_left, LOW);
+    analogWrite(IN1_right, 0);
+    digitalWrite(IN2_right, LOW);
+  }
+
+  else if (direction == "forward")  // For forward movement
+  {
+    analogWrite(IN3_left, 150);
+    digitalWrite(IN4_left, LOW);
+    analogWrite(IN1_right, 150);
+    digitalWrite(IN2_right, LOW);
+  }
+
+  else if (direction == "reverse") // For reverse movement
+  {
+    analogWrite(IN3_left, LOW);
+    digitalWrite(IN4_left, 150); 
+    analogWrite(IN1_right, LOW);
+    digitalWrite(IN2_right, 150); 
+  }
+
+  else if (direction == "left") // For left movement
+  {
+    analogWrite(IN3_left,LOW);
+    digitalWrite(IN4_left, 50);
+    analogWrite(IN1_right, 50);
+    digitalWrite(IN2_right, LOW);
+  }
+
+  else if (direction == "right") // For right movement
+  {
+    analogWrite(IN3_left, 50);
+    digitalWrite(IN4_left, LOW);
+    analogWrite(IN1_right,  LOW);
+    digitalWrite(IN2_right, 50);
+  }
+
+  else // If user inputs invalid direction parameters
+  {
+    Serial.println("Invalid direction input");
+  }
+
+}
+
+
+int Ultrasound1(void) // Function for Ultrasound
+{
+
+long pulseDuration;
+int Distance;
+
+digitalWrite(TrigPin1, LOW);
+delayMicroseconds(2);
+digitalWrite(TrigPin1, HIGH);
+delayMicroseconds(10);
+
+pulseDuration = pulseIn(EchoPin1, HIGH);
+Distance = pulseDuration / 58;
+
+return(Distance);
+
+}
+
+int Ultrasound2(void)
+{
+
+long pulseDuration;
+int Distance;
+
+digitalWrite(TrigPin2, LOW);
+delayMicroseconds(2);
+digitalWrite(TrigPin2, HIGH);
+delayMicroseconds(10);
+
+pulseDuration = pulseIn(EchoPin2, HIGH);
+Distance = pulseDuration / 58;
+
+return(Distance);
+
+}
+
+void Obstacle() //Function for obstacles in front of car
+{
+  if (reverse == 1)
+  {
+    move("reverse");
+  }
+
+  else
+  {
+    move("stop");
+  }
+}
