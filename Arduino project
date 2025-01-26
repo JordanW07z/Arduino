@@ -35,8 +35,8 @@ BlynkTimer timer;
 void Motor(String direction);
 void smartcar();
 void Obstacle();
-int Ultrasound1(void);
-int Ultrasound2(void);
+int Right_Ultrasound(void);
+int Left_Ultrasound(void);
 void sendSensor();
 
 
@@ -100,10 +100,10 @@ void loop()
   Blynk.run(); //Initiates Blynk
   timer.run(); // Initiates timer
 
-  int Dist1 = Ultrasound1();
-  int Dist2 = Ultrasound2();
+  int RightDist = Right_Ultrasound();
+  int LeftDist = Left_Ultrasound();
 
-  if (Dist1 < 35 || Dist2 < 35)
+  if (RightDist < 35 || LeftDist < 35)
   {
     Obstacle();
   }
@@ -229,7 +229,7 @@ void move(String direction)
 }
 
 
-int Ultrasound1(void) // Function for Ultrasound
+int Right_Ultrasound(void) // Function for Ultrasound
 {
 
 long pulseDuration;
@@ -247,7 +247,7 @@ return(Distance);
 
 }
 
-int Ultrasound2(void)
+int Left_Ultrasound(void)
 {
 
 long pulseDuration;
