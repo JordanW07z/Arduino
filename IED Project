@@ -34,7 +34,10 @@ BlynkTimer timer;
 // Function prototypes
 void Motor(String direction);
 void smartcar();
-void Obstacle();
+void Check_Obstacles(int RightDist, int LeftDist);
+void Front_Obstacle();
+void Left_Obstacle();
+void Right_Obstacle();
 int Right_Ultrasound(void);
 int Left_Ultrasound(void);
 void sendSensor();
@@ -103,43 +106,35 @@ void loop()
   int RightDist = Right_Ultrasound();
   int LeftDist = Left_Ultrasound();
 
-  if (RightDist < 35 || LeftDist < 35)
-  {
-    Obstacle();
-  }
-
-  else
-  {
-    smartcar();
-  }
+  Check_Obstacles(RightDist, LeftDist);
 
 }
 
 // Blynk_Write functions for getting values from the phone
 BLYNK_WRITE(V0)
 {
-  forward = param.asInt();
+  forward = param.asInt(); // forward button
 }
 
 BLYNK_WRITE(V1)
 {
-  reverse = param.asInt();
+  reverse = param.asInt(); // reverse button
 }
 
 BLYNK_WRITE(V2)
 {
-  left = param.asInt();
+  left = param.asInt(); // left button
 }
 
 BLYNK_WRITE(V3)
 {
-  right = param.asInt();
+  right = param.asInt(); // right button
 }
 
 void sendSensor()
 {
   float h = dht.readHumidity();
-  float t = dht.readTemperature(); // or dht.readTemperature(true) for Fahrenheit
+  float t = dht.readTemperature(); 
 
   if (isnan(h) || isnan(t)) 
   {
@@ -147,8 +142,8 @@ void sendSensor()
     return;
   }
 
-  Blynk.virtualWrite(V5, h);
-  Blynk.virtualWrite(V6, t);
+  Blynk.virtualWrite(V5, h); //send humidity values to Phone
+  Blynk.virtualWrite(V6, t); // send temperature values to Phone
 }
 
 void smartcar() // Function for controlling the car using WiFi
@@ -191,34 +186,34 @@ void move(String direction)
 
   else if (direction == "forward")  // For forward movement
   {
-    analogWrite(IN3_left, 150);
+    analogWrite(IN3_left, 100);
     digitalWrite(IN4_left, LOW);
-    analogWrite(IN1_right, 150);
+    analogWrite(IN1_right, 100);
     digitalWrite(IN2_right, LOW);
   }
 
   else if (direction == "reverse") // For reverse movement
   {
     analogWrite(IN3_left, LOW);
-    digitalWrite(IN4_left, 150); 
+    digitalWrite(IN4_left, 80); 
     analogWrite(IN1_right, LOW);
-    digitalWrite(IN2_right, 150); 
+    digitalWrite(IN2_right, 80); 
   }
 
   else if (direction == "left") // For left movement
   {
     analogWrite(IN3_left,LOW);
-    digitalWrite(IN4_left, 50);
-    analogWrite(IN1_right, 50);
+    digitalWrite(IN4_left, 30);
+    analogWrite(IN1_right, 30);
     digitalWrite(IN2_right, LOW);
   }
 
   else if (direction == "right") // For right movement
   {
-    analogWrite(IN3_left, 50);
+    analogWrite(IN3_left, 30);
     digitalWrite(IN4_left, LOW);
     analogWrite(IN1_right,  LOW);
-    digitalWrite(IN2_right, 50);
+    digitalWrite(IN2_right, 30);
   }
 
   else // If user inputs invalid direction parameters
@@ -265,11 +260,80 @@ return(Distance);
 
 }
 
-void Obstacle() //Function for obstacles in front of car
+void Check_Obstacles(int RightDist, int LeftDist) 
 {
-  if (reverse == 1)
+  const int CLOSE_DISTANCE = 20;  // Distance threshold to detect close obstacles
+  const int SAFE_DISTANCE = 35;  // Distance threshold for safe operation
+
+  if (RightDist < CLOSE_DISTANCE || LeftDist < CLOSE_DISTANCE) 
+  {
+    // Obstacle detected on one or both sides
+    if (RightDist < CLOSE_DISTANCE && LeftDist >= CLOSE_DISTANCE) 
+    {
+      // Obstacle on the right; move left
+      Right_Obstacle();
+    } 
+    else if (LeftDist < CLOSE_DISTANCE && RightDist >= CLOSE_DISTANCE) 
+    {
+      // Obstacle on the left; move right
+      Left_Obstacle();
+    } 
+    else 
+    {
+      // Obstacles on both sides; stop
+      Front_Obstacle();
+    }
+  }
+
+  else 
+  {
+    // No close obstacles
+    if (RightDist < SAFE_DISTANCE && LeftDist < SAFE_DISTANCE) 
+    {
+      // Obstacles moderately close in front; stop
+      Front_Obstacle();
+    } 
+    else 
+    {
+      // Path is clear; proceed forward
+      smartcar();
+    }
+  }
+
+}
+
+void Front_Obstacle()
+{
+  if(reverse == 1)
   {
     move("reverse");
+  }
+
+  else
+  {
+    move("stop");
+  }
+
+}
+
+void Right_Obstacle()
+{
+  if(left == 1)
+  {
+    move("left");
+  }
+
+  else
+  {
+    move("stop");
+  }
+}
+
+void Left_Obstacle()
+{
+  if(right == 1)
+  {
+    move("right");
   }
 
   else
