@@ -267,36 +267,36 @@ void Check_Obstacles(int RightDist, int LeftDist)
 
   if (RightDist < CLOSE_DISTANCE || LeftDist < CLOSE_DISTANCE) 
   {
-    // Obstacle detected on one or both sides
-    if (RightDist < CLOSE_DISTANCE && LeftDist >= CLOSE_DISTANCE) 
+   
+    if (RightDist < CLOSE_DISTANCE && LeftDist >= CLOSE_DISTANCE)  // Obstacle detected on one or both sides
     {
-      // Obstacle on the right; move left
-      Right_Obstacle();
+      
+      Right_Obstacle(); // Obstacle on the right; move left
     } 
     else if (LeftDist < CLOSE_DISTANCE && RightDist >= CLOSE_DISTANCE) 
     {
-      // Obstacle on the left; move right
-      Left_Obstacle();
+      
+      Left_Obstacle(); // Obstacle on the left hence move right
     } 
     else 
     {
-      // Obstacles on both sides; stop
-      Front_Obstacle();
+      
+      Front_Obstacle(); // Obstacles on both sides hence stop
     }
   }
 
   else 
   {
-    // No close obstacles
-    if (RightDist < SAFE_DISTANCE && LeftDist < SAFE_DISTANCE) 
+    
+    if (RightDist < SAFE_DISTANCE && LeftDist < SAFE_DISTANCE) // No close obstacles
     {
-      // Obstacles moderately close in front; stop
-      Front_Obstacle();
+      
+      Front_Obstacle(); // Obstacles moderately close in front hence stop
     } 
     else 
     {
-      // Path is clear; proceed forward
-      smartcar();
+      
+      smartcar(); // Path is clear proceed with normal operations
     }
   }
 }
