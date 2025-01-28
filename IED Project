@@ -186,18 +186,18 @@ void move(String direction)
 
   else if (direction == "forward")  // For forward movement
   {
-    analogWrite(IN3_left, 100);
+    analogWrite(IN3_left, 150);
     digitalWrite(IN4_left, LOW);
-    analogWrite(IN1_right, 100);
+    analogWrite(IN1_right, 180); // Not the same PWM as we calibrated it due to some issues in the wheel
     digitalWrite(IN2_right, LOW);
   }
 
   else if (direction == "reverse") // For reverse movement
   {
     analogWrite(IN3_left, LOW);
-    digitalWrite(IN4_left, 80); 
+    digitalWrite(IN4_left, 150); 
     analogWrite(IN1_right, LOW);
-    digitalWrite(IN2_right, 80); 
+    digitalWrite(IN2_right, 150); 
   }
 
   else if (direction == "left") // For left movement
@@ -299,7 +299,6 @@ void Check_Obstacles(int RightDist, int LeftDist)
       smartcar();
     }
   }
-
 }
 
 void Front_Obstacle()
