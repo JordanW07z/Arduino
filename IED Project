@@ -188,7 +188,7 @@ void move(String direction)
   {
     analogWrite(IN3_left, 150);
     digitalWrite(IN4_left, LOW);
-    analogWrite(IN1_right, 180); // Not the same PWM as we calibrated it due to some issues in the wheel
+    analogWrite(IN1_right, 180); // Not the same PWM as we calibrated it due to some hardware issues in the wheel
     digitalWrite(IN2_right, LOW);
   }
 
