@@ -14,7 +14,9 @@
 #define EchoPin1 10
 #define TrigPin2 8
 #define EchoPin2 7
-#define DHTPIN 12
+#define DHTPIN A1
+#define bita 12
+#define bitb 2
 
 
 // Libraries
@@ -29,7 +31,7 @@ LiquidCrystal_I2C lcd(0x27,16,2);
 
 DHT dht(DHTPIN, DHT11);
 
-BlynkTimer timer; 
+BlynkTimer timer;
 
 // Function prototypes
 void Motor(String direction);
@@ -41,7 +43,12 @@ void Right_Obstacle();
 int Right_Ultrasound(void);
 int Left_Ultrasound(void);
 void sendSensor();
+void FrontfireAlert();
+void BackfireAlert();
+void checkBlynkConnection();
 
+volatile bool FrontfireDetected = false;
+volatile bool BackfireDetected = false;
 
 bool forward = 0;
 bool reverse = 0;
@@ -74,18 +81,33 @@ void setup()
  pinMode(EchoPin1, INPUT);
  pinMode(TrigPin2, OUTPUT);
  pinMode(EchoPin2, INPUT);
+ pinMode(bita, INPUT_PULLUP);
+ pinMode(bitb, INPUT_PULLUP);
  
+ attachInterrupt(digitalPinToInterrupt(bita), FrontfireAlert, FALLING);
+ attachInterrupt(digitalPinToInterrupt(bitb), BackfireAlert, FALLING);
 
  Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
 
- timer.setInterval(1000L, sendSensor);
+ timer.setInterval(1000L, sendSensor); // Send data every 0.1 seconds
+ timer.setInterval(30000L, checkBlynkConnection); // Check WiFi every 30 seconds
 
 }
 
 void loop()
 {
+  Blynk.run(); //Initiates Blynk
+  timer.run(); // Initiates timer
 
- 
+  if (FrontfireDetected || BackfireDetected)
+  {
+    Serial.println("Fire detected!");
+
+    FrontfireDetected = false;
+    BackfireDetected = false;
+
+  }
+
   float h = dht.readHumidity();
   float t = dht.readTemperature();
 
@@ -100,8 +122,6 @@ void loop()
   lcd.setCursor(9,1);
   lcd.print(h);
 
-  Blynk.run(); //Initiates Blynk
-  timer.run(); // Initiates timer
 
   int RightDist = Right_Ultrasound();
   int LeftDist = Left_Ultrasound();
@@ -171,7 +191,6 @@ void smartcar() // Function for controlling the car using WiFi
 
 }
 
-
 // Function for Motor 
 void move(String direction)
 {
@@ -186,18 +205,18 @@ void move(String direction)
 
   else if (direction == "forward")  // For forward movement
   {
-    analogWrite(IN3_left, 150);
+    analogWrite(IN3_left, 100);
     digitalWrite(IN4_left, LOW);
-    analogWrite(IN1_right, 180); // Not the same PWM as we calibrated it due to some hardware issues in the wheel
+    analogWrite(IN1_right, 140); // Not the same PWM as we calibrated it due to some hardware issues in the wheel
     digitalWrite(IN2_right, LOW);
   }
 
   else if (direction == "reverse") // For reverse movement
   {
     analogWrite(IN3_left, LOW);
-    digitalWrite(IN4_left, 150); 
+    digitalWrite(IN4_left, 100); 
     analogWrite(IN1_right, LOW);
-    digitalWrite(IN2_right, 150); 
+    digitalWrite(IN2_right, 100); 
   }
 
   else if (direction == "left") // For left movement
@@ -222,7 +241,6 @@ void move(String direction)
   }
 
 }
-
 
 int Right_Ultrasound(void) // Function for Ultrasound
 {
@@ -263,7 +281,7 @@ return(Distance);
 void Check_Obstacles(int RightDist, int LeftDist) 
 {
   const int CLOSE_DISTANCE = 20;  // Distance threshold to detect close obstacles
-  const int SAFE_DISTANCE = 35;  // Distance threshold for safe operation
+  const int SAFE_DISTANCE = 40;  // Distance threshold for safe operation
 
   if (RightDist < CLOSE_DISTANCE || LeftDist < CLOSE_DISTANCE) 
   {
@@ -339,4 +357,23 @@ void Left_Obstacle()
   {
     move("stop");
   }
+}
+
+void checkBlynkConnection() // Checks if WiFi is connected
+{
+  if (!Blynk.connected())
+  {
+    Serial.println("Reconnecting to Blynk...");
+    Blynk.begin(BLYNK_AUTH_TOKEN, ssid, pass);
+  }
+}
+
+void FrontfireAlert() // ISR function for bita
+{
+  FrontfireDetected = true;
+}
+
+void BackfireAlert() // ISR function for bitb
+{
+  BackfireDetected = true;
 }
