@@ -176,7 +176,7 @@ void sendSensor()
     return;
   }
 
-  Blynk.virtualWrite(V5, h); //send humidity values to Phone
+  Blynk.virtualWrite(V5, h); // send humidity values to Phone
   Blynk.virtualWrite(V6, t); // send temperature values to Phone
 }
 
