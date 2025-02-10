@@ -17,6 +17,7 @@
 #define DHTPIN A1
 #define bita 12
 #define bitb 2
+#define BuzzerPin 4
 
 
 // Libraries
@@ -26,12 +27,14 @@
 #include <LiquidCrystal_I2C.h>
 #include <Wire.h>
 #include <DHT.h>
+#include <Buzzer.h>
 
 LiquidCrystal_I2C lcd(0x27,16,2); 
 
 DHT dht(DHTPIN, DHT11);
 
 BlynkTimer timer;
+Buzzer buzzer(BuzzerPin);
 
 // Function prototypes
 void Motor(String direction);
@@ -64,6 +67,8 @@ void setup()
   
   Serial.begin(9600); // Debug console
 
+  buzzer.begin(BuzzerPin);
+
   // Initialising LCD
   lcd.init();
   lcd.backlight();
@@ -83,6 +88,7 @@ void setup()
  pinMode(EchoPin2, INPUT);
  pinMode(bita, INPUT_PULLUP);
  pinMode(bitb, INPUT_PULLUP);
+ pinMode(BuzzerPin, OUTPUT);
  
  attachInterrupt(digitalPinToInterrupt(bita), FrontfireAlert, FALLING);
  attachInterrupt(digitalPinToInterrupt(bitb), BackfireAlert, FALLING);
@@ -99,9 +105,17 @@ void loop()
   Blynk.run(); //Initiates Blynk
   timer.run(); // Initiates timer
 
-  if (FrontfireDetected || BackfireDetected)
+  while(FrontfireDetected || BackfireDetected)
   {
-    Serial.println("Fire detected!");
+    
+    for (int i = 500; i <= 1000; i += 10)
+    {
+      buzzer.sound(i, 20);
+    }
+    for (int i = 1000; i >= 500; i -= 10)
+    {
+      buzzer.sound(i, 20);
+    }
 
     FrontfireDetected = false;
     BackfireDetected = false;
